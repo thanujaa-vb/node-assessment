@@ -8,6 +8,8 @@ const app = express();
 app.use(express.json());
 const User = require("./model/user");
 const constant = require("./config");
+const isUser = require("./roles/isUser");
+const isAdmin = require("./roles/isAdmin");
 
 // const cors = require("cors") //Newly added
 // app.use(cors()) // Newly added
@@ -99,10 +101,10 @@ app.post("/login",async (req, res) => {
   }
     });
 
-    app.post("/welcome", auth, (req, res) => {
+    app.post("/welcome", [auth, isUser], (req, res) => {
         res.status(constant.HTTP_200_CODE).send("Welcome data.....");
       });
-      app.post("/home", auth, (req, res) => {
+      app.post("/home", [auth, isAdmin], (req, res) => {
         res.status(constant.HTTP_200_CODE).send("Home data.....");
       });
 module.exports = app;

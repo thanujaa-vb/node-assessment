@@ -12,15 +12,16 @@ const verifyToken = (req, res, next) => {
   }
   try {
     const decoded = jwt.verify(token, config.TOKEN_KEY);
-
-    if(role[decoded.role].find(function(url){ return url==req.originalUrl}))
-    {
     req.user=decoded
-    //  next();
-    }
-    else{
-        return res.status(401).send('Access Denied: You dont have correct privilege to perform this operation');
-    };
+
+    // if(role[decoded.role].find(function(url){ return url==req.originalUrl}))
+    // {
+    // req.user=decoded
+    // //  next();
+    // }
+    // else{
+    //     return res.status(401).send('Access Denied: You dont have correct privilege to perform this operation');
+    // };
   } catch (err) {
     return res.status(constant.HTTP_401_CODE).send("Invalid Token");
   }
