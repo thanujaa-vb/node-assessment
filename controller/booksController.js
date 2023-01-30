@@ -6,6 +6,7 @@ const Books = require("../model/books");
 const constant = require("../config");
 
 const addBooks = async (req, res) => {
+  console.log(req.body);
     const {
         name,
         author,
@@ -30,6 +31,7 @@ const addBooks = async (req, res) => {
         return res.status(constant.HTTP_201_CODE).json(books);
     }
     catch(err){
+      // console.log(err);
         console.error(err.message);
         return res.status(constant.HTTP_500_CODE).send('Server Error..')
     }
@@ -93,6 +95,7 @@ const updateBookById = async(req, res) =>{
       books.save()
       res.status(constant.HTTP_200_CODE).send("Updated Successfully");
   }catch (error){
+    console.log(error.message);
     return res.status(constant.HTTP_500_CODE).send("Internal server error");
   }
 }

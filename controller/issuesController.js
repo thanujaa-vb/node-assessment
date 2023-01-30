@@ -41,7 +41,7 @@ const addIssue = async(req, res) =>{
                                 $set: {copies: (requiredBook.copies-1)}
                             },{new: true})
                             .then((book) => {
-                            res.statusCode=200;
+                            res.statusCode=201;
                             res.setHeader('Content-Type','application/json');
                             res.json(issue);
             
@@ -76,7 +76,7 @@ const getIssues = async(req, res) =>{
 }
 
 const deleteAllIsuues = async(req, res) =>{
-    Issue.remove({})
+    Issue.deleteMany({returned: true})
     .then((resp) => {
         console.log("Removed All Issue");
         return res.status(200).json(resp);

@@ -12,20 +12,16 @@ const redis_client = require("../redis");
 const userRegister = async (req, res) => {
     try {
         const { firstName, lastName, role, email, password } = req.body; // Get user input
-    
         // Validate user input
         if (!(email && password && firstName && lastName && role)) {
-          res.status(constant.HTTP_400_CODE).send("All input fields are required..");
+         return res.status(constant.HTTP_400_CODE).send("All input fields are required..");
         }
-    
         // check if user already exist
         // Validate if user exist in our database
         const oldUser = await User.findOne({ email });
-    
         if (oldUser) {
           return res.status(constant.HTTP_409_CODE).send("User Already Exist. Please Login...");
         }
-    
         //Encrypt user password
         encryptedUserPassword = await bcrypt.hash(password, 10);
         // Create user in our database
@@ -49,7 +45,7 @@ const userRegister = async (req, res) => {
       user.token = token;
   
       // return new user
-      res.status(constant.HTTP_201_CODE).json(user);
+     return res.status(constant.HTTP_201_CODE).json(user);
     } catch (err) {
       console.log(err);
     }
@@ -75,13 +71,15 @@ const userLogin = async(req, res) =>{
               expiresIn: process.env.EXPIRESIN,
             }
           );
-          const refresh_token = GenerateRefreshToken(user._id,email, user.role);
-        // return res.json({status: true, message: "login success", data: {access_token, refresh_token}});
+          redis_client.get(user._id.toString(), (err, data) => {
+            if(err) return res.send(err);
+      
+            redis_client.set(user._id.toString(), JSON.stringify({token: token}));
+          });
           // save user token
       user.token = token;
-
       // user
-      return res.status(constant.HTTP_200_CODE).json({user,token: token, refreshToken: refresh_token});
+      return res.status(constant.HTTP_200_CODE).json({user});
     }
     return res.status(constant.HTTP_400_CODE).send("Invalid Credentials");
 }catch (err) {
@@ -89,40 +87,24 @@ const userLogin = async(req, res) =>{
   }
 }
 
-async function userLogout (req, res) {
-  const user_id = req.body.refToken;
-  const token = req.body.token;
-
+async function userLogout (req, res, next) {
+  const token = req.body.token || req.query.token || req.headers.authorization;
+  if(!token){
+    return res.json({status: false, message: "please provide token"})
+  }
   // remove the refresh token
-  await redis_client.del(user_id.toString());
-
-  // blacklist current access token
-  await redis_client.set('BL_' + user_id.toString(), token);
+  await redis_client.del(req.user.user_id, function(err, reply) {
+    if(err){
+        console.log(err.message);
+      }
+      else console.log(reply);
+    });
   
-  return res.json({status: true, message: "success."});
+  return res.status(constant.HTTP_200_CODE).json({status: true, message: "success."});
 }
 
-function GetAccessToken (req, res) {
-  const user_id = req.body.token;
-  const access_token = jwt.sign({user_id: user_id}, process.env.TOKEN_KEY, { expiresIn: process.env.EXPIRESIN});
-  const refresh_token = GenerateRefreshToken(user_id);
-  return res.json({status: true, message: "success", data: {access_token, refresh_token}});
-}
-
-function GenerateRefreshToken(user_id,email, role) {
-  const refresh_token = jwt.sign({ user_id: user_id, email: email, role: role }, process.env.JWT_REFRESH_SECRET, { expiresIn: process.env.JWT_REFRESH_TIME });
-  
-  redis_client.get(user_id.toString(), (err, data) => {
-      if(err) return res.send(err);
-
-      redis_client.set(user_id.toString(), JSON.stringify({token: refresh_token}));
-  })
-
-  return refresh_token;
-}
 module.exports = {
     userRegister,
     userLogin,
-    GetAccessToken,
     userLogout
 };
